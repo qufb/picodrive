@@ -60,17 +60,10 @@ static u32 PicoRead8_pico(u32 a)
       case 0x09: d = (PicoPicohw.pen_pos[1] >> 8);  break;
       case 0x0b: d =  PicoPicohw.pen_pos[1] & 0xff; break;
       case 0x0d:
-        d = ((1 << (PicoPicohw.page & 7)) - 1);
-        if (PicoPicohw.is_kb_active) {
-          // Apply 1 of 2 bitmasks, depending on which one preserves the highest set bit.
-          unsigned int page_v = d << 1;
-          unsigned int page_msb_i = 0;
-          while (page_v >>= 1)
-              page_msb_i++;
-          if (page_msb_i % 2 == 0)
-            d &= 0x2a; // 0b00101010
-          else
-            d &= 0x15; // 0b00010101
+        if (PicoPicohw.page == 7) {
+            d = 0x2a; // 0b00101010
+        } else {
+            d = ((1 << (PicoPicohw.page & 7)) - 1);
         }
         break;
       case 0x12: d = PicoPicohw.fifo_bytes == 0 ? 0x80 : 0; break; // guess

@@ -301,8 +301,56 @@ static void PicoWrite8_pico_kb(u32 a, u32 d)
 static void PicoWrite16_pico_kb(u32 a, u32 d)
 {
   elprintf(EL_PICOHW, "kb: w16 @%06X %04X = %04X\n", SekPc, a, d);
-
   PicoPicohw.kb.mem = d;
+}
+
+static void pico_copera_update_state(u32 a, u32 d)
+{
+  if (PicoPicohw.copera[0x05] == 0x09) {
+      // At this point, callbacks used by the external interrupt handler
+      // have been set, so it's safe to start calling them.
+      PicoPicohw.copera[0x01] |= 0x08; // 0b00001000 enables callback 3
+  }
+}
+
+static u32 PicoRead8_pico_copera(u32 a)
+{
+  u32 d = 0;
+  if ((a >= 0xbff800) || (a <= 0xbfffff)) {
+      d = PicoPicohw.copera[a - 0xbff800];
+  }
+  elprintf(EL_PICOHW, "co: r8 @%06X %04X = %04X\n", SekPc, a, d);
+  return d;
+}
+
+static u32 PicoRead16_pico_copera(u32 a)
+{
+  u32 d = 0;
+  if ((a >= 0xbff800) || (a <= 0xbfffff)) {
+      d = PicoPicohw.copera[a - 0xbff800] << 8;
+      d |= PicoPicohw.copera[a - 0xbff800 + 1];
+  }
+  elprintf(EL_PICOHW, "co: r16 @%06X %04X = %04X\n", SekPc, a, d);
+  return d;
+}
+
+static void PicoWrite8_pico_copera(u32 a, u32 d)
+{
+  if ((a >= 0xbff800) || (a <= 0xbfffff)) {
+      PicoPicohw.copera[a - 0xbff800] = d & 0xff;
+      pico_copera_update_state(a, d);
+  }
+  elprintf(EL_PICOHW, "co: w8 @%06X %04X = %04X\n", SekPc, a, d);
+}
+
+static void PicoWrite16_pico_copera(u32 a, u32 d)
+{
+  if ((a >= 0xbff800) || (a <= 0xbfffff)) {
+      PicoPicohw.copera[a - 0xbff800] = d & 0xff00;
+      PicoPicohw.copera[a - 0xbff800 + 1] = d & 0x00ff;
+      pico_copera_update_state(a, d);
+  }
+  elprintf(EL_PICOHW, "co: w16 @%06X %04X = %04X\n", SekPc, a, d);
 }
 
 PICO_INTERNAL void PicoMemSetupPico(void)
@@ -325,4 +373,10 @@ PICO_INTERNAL void PicoMemSetupPico(void)
   cpu68k_map_set(m68k_read16_map,  0x200000, 0x20ffff, PicoRead16_pico_kb, 1);
   cpu68k_map_set(m68k_write8_map,  0x200000, 0x20ffff, PicoWrite8_pico_kb, 1);
   cpu68k_map_set(m68k_write16_map, 0x200000, 0x20ffff, PicoWrite16_pico_kb, 1);
+
+  // map Pico Copera I/O
+  cpu68k_map_set(m68k_read8_map,   0xbf0000, 0xbfffff, PicoRead8_pico_copera, 1);
+  cpu68k_map_set(m68k_read16_map,  0xbf0000, 0xbfffff, PicoRead16_pico_copera, 1);
+  cpu68k_map_set(m68k_write8_map,  0xbf0000, 0xbfffff, PicoWrite8_pico_copera, 1);
+  cpu68k_map_set(m68k_write16_map, 0xbf0000, 0xbfffff, PicoWrite16_pico_copera, 1);
 }

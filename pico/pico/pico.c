@@ -12,7 +12,7 @@
 //    0x2f8 - 0x3f3
 picohw_state PicoPicohw;
 
-static int prev_line_cnt_irq3 = 0, prev_line_cnt_irq5 = 0;
+static int prev_line_cnt_irq2 = 0, prev_line_cnt_irq3 = 0, prev_line_cnt_irq5 = 0;
 static int fifo_bytes_line = (16000<<16)/60/262/2;
 
 static const int guessed_rates[] = { 8000, 14000, 12000, 14000, 16000, 18000, 16000, 16000 }; // ?
@@ -72,10 +72,21 @@ static void PicoLinePico(void)
     SekInterrupt(5);
   }
 #endif
+
+#if 1
+  if ((PicoPicohw.copera[0x1] > 0) && PicoPicohw.line_counter - prev_line_cnt_irq2 > 33) {
+    prev_line_cnt_irq2 = PicoPicohw.line_counter;
+    // just a guess/hack, allows Copera games to pass EXT loop checks
+    elprintf(EL_PICOHW, "irq2");
+    SekInterrupt(2);
+    return;
+  }
+#endif
 }
 
 static void PicoResetPico(void)
 {
+
   PicoPicoPCMReset();
   PicoPicohw.xpcm_ptr = PicoPicohw.xpcm_buffer;
 }
@@ -89,9 +100,10 @@ PICO_INTERNAL void PicoInitPico(void)
   PicoIn.AHW = PAHW_PICO;
   memset(&PicoPicohw, 0, sizeof(PicoPicohw));
   memset(&(PicoPicohw.kb), 0, sizeof(picohw_kb));
+  memset(PicoPicohw.copera, 0, COPERA_BUFFER_SIZE);
   PicoPicohw.pen_pos[0] = 0x03c + 320/2;
   PicoPicohw.pen_pos[1] = 0x200 + 240/2;
-  prev_line_cnt_irq3 = prev_line_cnt_irq5 = 0;
+  prev_line_cnt_irq2 = prev_line_cnt_irq3 = prev_line_cnt_irq5 = 0;
 
   // map version register
   PicoDetectRegion();

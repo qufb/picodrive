@@ -142,6 +142,7 @@ struct PicoEState;
 
 // pico.c
 #define XPCM_BUFFER_SIZE (320+160)
+#define COPERA_BUFFER_SIZE 0xb00
 enum {
   KEY_RELEASED = 0,
   KEY_DOWN,
@@ -184,6 +185,7 @@ typedef struct
 	int is_pen_overlay_active;
 	int inp_mode;
 	picohw_kb kb;
+	unsigned char copera[COPERA_BUFFER_SIZE];
 } picohw_state;
 extern picohw_state PicoPicohw;
 
